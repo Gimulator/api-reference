@@ -1,0 +1,231 @@
+openapi: 3.0.3
+servers: []
+info:
+  description: This is the Gimulator API
+  version: "0.1.0"
+  title: Gimulator API
+  contact:
+    email: alimirlou@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: admins
+    description: Secured Admin-only calls
+  - name: auth
+    description: Operations related to authentication
+  - name: game
+    description: Operations related to the running game
+paths:
+  /register:
+    post:
+      tags:
+        - auth
+      summary: registers the user
+      operationId: register
+      description: Registers a user to the Gimulator and creates a session for it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ID
+              properties:
+                ID:
+                  type: string
+                  format: uuid
+                  example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        description: User credentials to register
+      responses:
+        '200':
+          description: user registered
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: token=abcde12345; Path=/; HttpOnly
+        '400':
+          description: could not decode the body of request
+        '422':
+          description: could not authenticate the request
+      security: []
+
+  /get:
+    post:
+      tags:
+        - game
+      summary: returns an object
+      operationId: get
+      description: Returns the value of a specific object by the given key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Object'
+        description: Object key to search
+      responses:
+        '200':
+          description: object is found and returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Object'
+        '400':
+          description: could not decode the body of request
+        '401':
+          description: could not auth the request
+        '422':
+          description: could not find object by the given key
+
+  /set:
+    post:
+      tags:
+        - game
+      summary: sets an object
+      operationId: set
+      description: Sets the value for a specific object by the given key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Object'
+        description: Object to set
+      responses:
+        '204':
+          description: object is set
+        '400':
+          description: could not decode the body of request
+        '401':
+          description: could not auth the request
+
+  /find:
+    post:
+      tags:
+        - game
+      summary: searches and returns objects
+      operationId: find
+      description: Returns the objects matching with the given key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Object'
+        description: Object key to search
+      responses:
+        '200':
+          description: object is found and returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Object'
+        '400':
+          description: could not decode the body of request
+        '401':
+          description: could not auth the request
+
+  /delete:
+    post:
+      tags:
+        - game
+      summary: deletes an object
+      operationId: delete
+      description: Deletes a specific object by the given key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Object'
+        description: Object to delete
+      responses:
+        '204':
+          description: object is deleted
+        '400':
+          description: could not decode the body of request
+        '401':
+          description: could not auth the request
+        '422':
+          description: could not find object by the given key
+
+  /watch:
+    post:
+      tags:
+        - game
+      summary: watches on an object
+      operationId: watch
+      description: Watches the changes on the value of a specific object by the given key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Object'
+        description: Object key to watch
+      responses:
+        '204':
+          description: object is found and added to watches
+        '400':
+          description: could not decode the body of request
+        '401':
+          description: could not auth the request
+
+  /socket:
+    get:
+      tags:
+        - game
+      summary: opens a websocket
+      operationId: socket
+      description: Opens a websocket to server. If any object that is being watched from the client changes, the server will send it to the client through this websocket in a schema of [Object](#Object)
+      responses:
+        '101':
+          description: socket is upgraded
+        '401':
+          description: could not auth the request
+        '500':
+          description: could not upgrade connection to websocket
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+  schemas:
+    Key:
+      type: object
+      required:
+        - Type
+        - Namespace
+        - Name
+      properties:
+        Type:
+          type: string
+          example: action
+        Namespace:
+          type: string
+          example: default
+        Name:
+          type: string
+          example: agent-5
+    Object:
+      type: object
+      required:
+        - Key
+        - Value
+        - Owner
+      properties:
+        Key:
+          $ref: '#/components/schemas/Key'
+        Value:
+          type: object
+        Owner:
+          type: string
+security:
+  - cookieAuth: []
